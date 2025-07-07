@@ -25,32 +25,33 @@ class PdfTextExtraction:
         self.reader = PdfReader(pdf_path)
 
     def pypdf_text_extraction(self):
-        full_text = ""
-        for page in self.reader.pages:
+        full_text = {}
+        for page_number, page in enumerate(self.reader.pages):
+            page_number = page_number + 1
             page_text = page.extract_text()
-            full_text += page_text
+            full_text[str(page_number)] = page_text
         return full_text
     
     def ocr_text_extraction(self, language):
-        fullText = ""
+        fullText = {}
         pageNumber = len(self.reader.pages)
         with tqdm(total=pageNumber, desc="extracting text...")as pbar:
 
-            for page in self.reader.pages:
+            for page_number, pdf_page in enumerate(self.reader.pages):
+                page_number = page_number + 1
                 tempPdfWriter = PdfWriter()
-                tempPdfWriter.add_page(page)
+                tempPdfWriter.add_page(pdf_page)
                 
                 with BytesIO() as buffer:
                     tempPdfWriter.write(buffer)
                     pdfBytes = buffer.getvalue()
-
-                images = convert_from_bytes(pdfBytes, poppler_path=POPPLER_PATH)
-                for image in images:
-                    text = pytesseract.image_to_string(image, lang=language)
-                    fullText += f"{text}\n"
+                #print("current page:", page_number)
+                image = convert_from_bytes(pdfBytes, poppler_path=POPPLER_PATH)[0]
+                text = pytesseract.image_to_string(image, lang=language)
+                fullText[str(page_number)] = text
 
                 pbar.update(1)
-        return fullText       
+        return fullText
 
     def pdf_to_text(self, lang="eng", ocr_default=False):
         full_text = self.pypdf_text_extraction()
